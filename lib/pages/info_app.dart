@@ -57,9 +57,7 @@ class InfoScreen extends StatelessWidget {
                     // Remplace la page actuelle
                     context,
                     MaterialPageRoute(
-                        builder: (context) => const WeatherHome(
-                              title: '',
-                            )));
+                        builder: (context) => const WeatherHomeScreen()));
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue.shade900,
