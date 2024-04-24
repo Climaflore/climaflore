@@ -29,8 +29,20 @@ class WeatherHomeScreen extends StatefulWidget {
   _WeatherHomeScreenState createState() => _WeatherHomeScreenState();
 }
 
+class WeatherData {
+  final int? temperature;
+
+  WeatherData({this.temperature});
+
+  factory WeatherData.fromJson(Map<String, dynamic> json) {
+    return WeatherData(
+      temperature: (json['current']['temperature_2m'] as double?)?.round(),
+    );
+  }
+}
+
 class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
-  double? _temperature;
+  int? _temperature;
 
   @override
   void initState() {
@@ -40,12 +52,12 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
 
   Future<void> _getWeather() async {
     const apiUrl =
-        'https://api.open-meteo.com/v1/forecast?latitude=45.7485&longitude=4.8467&current=temperature_2m,apparent_temperature,is_day,weather_code&timezone=auto';
+        'https://api.open-meteo.com/v1/forecast?latitude=45.757&longitude=4.726&current=temperature_2m,apparent_temperature,is_day,weather_code&timezone=auto';
     try {
       final response = await http.get(Uri.parse(apiUrl));
       final data = jsonDecode(response.body);
       setState(() {
-        _temperature = data['current']['temperature_2m'] as double?;
+        _temperature = (data['current']['temperature_2m'] as double?)?.round();
       });
     } catch (e) {
       print('Failed to load weather data: $e');
@@ -99,10 +111,11 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.all(10.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              SizedBox(height: 20.0), // Add spacing above the temperature
               if (_temperature != null)
                 Align(
                   alignment: Alignment.centerLeft,
@@ -113,7 +126,7 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
                     child: Text(
                       '$_temperature°C',
                       style: const TextStyle(
-                        fontSize: 100,
+                        fontSize: 85,
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
                       ),
