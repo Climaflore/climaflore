@@ -7,7 +7,7 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -23,9 +23,10 @@ class MyApp extends StatelessWidget {
 }
 
 class WeatherHomeScreen extends StatefulWidget {
-  const WeatherHomeScreen({Key? key}) : super(key: key);
+  const WeatherHomeScreen({super.key});
 
   @override
+  // ignore: library_private_types_in_public_api
   _WeatherHomeScreenState createState() => _WeatherHomeScreenState();
 }
 
@@ -44,8 +45,7 @@ class WeatherData {
 class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
   int? _temperature;
   int? _apparentTemperature;
-  late int _weatherCode;
-  String? _weatherIcon; // Declare this variable to store the icon path
+  int? _weatherCode;
 
   @override
   void initState() {
@@ -59,7 +59,6 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
     try {
       final response = await http.get(Uri.parse(apiUrl));
       final data = jsonDecode(response.body);
-      bool isDay = data['current']['is_day'] == 1;
       int weatherCode = data['current']['weather_code'];
 
       setState(() {
@@ -67,58 +66,46 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
         _apparentTemperature =
             (data['current']['apparent_temperature'] as double).round();
         _weatherCode = weatherCode;
-        _weatherIcon = getWeatherIcon(weatherCode, isDay);
       });
     } catch (e) {
+      // ignore: avoid_print
       print('Failed to load weather data: $e');
     }
   }
 
-  String getWeatherIcon(int code, bool isDay) {
-    String timeOfDay = isDay ? 'Light' : 'Dark';
-    switch (code) {
-      case 0:
-        return 'Weather Type-Clear, Colour-$timeOfDay.png';
-      case 1:
-      case 2:
-      case 3:
-        return 'Weather Type-Normal, Colour-$timeOfDay.png';
-      case 45:
-      case 48:
-        return 'Weather Type-Fog, Colour-$timeOfDay.png';
-      case 51:
-      case 53:
-      case 55:
-        return 'Weather Type-Drizzle, Colour-$timeOfDay.png';
-      case 56:
-      case 57:
-        return 'Weather Type-Freezing Drizzle, Colour-$timeOfDay.png';
-      case 61:
-      case 63:
-      case 65:
-        return 'Weather Type-Rainy, Colour-$timeOfDay.png';
-      case 66:
-      case 67:
-        return 'Weather Type-Freezing Rain, Colour-$timeOfDay.png';
-      case 71:
-      case 73:
-      case 75:
-        return 'Weather Type-Snow, Colour-$timeOfDay.png';
-      case 77:
-        return 'Weather Type-Snow Grains, Colour-$timeOfDay.png';
-      case 80:
-      case 81:
-      case 82:
-        return 'Weather Type-Sunny Rain, Colour-$timeOfDay.png';
-      case 85:
-      case 86:
-        return 'Weather Type-Snow Showers, Colour-$timeOfDay.png';
-      case 95:
-      case 96:
-      case 99:
-        return 'Weather Type-Thunder, Colour-$timeOfDay.png';
-      default:
-        return 'Weather Type-Normal, Colour-$timeOfDay.png'; // Default icon if code is not recognized
+  String getWeatherDescription(int weatherCode) {
+    if (weatherCode case 0) {
+      return "Clear sky";
+    } else if (weatherCode case 1) {
+      return "Mainly clear";
+    } else if (weatherCode case 2) {
+      return "Mainly clear";
+    } else if (weatherCode case 3) {
+      return "Mainly clear";
+    } else if (weatherCode case 45) {
+      return "Fog and depositing rime fog";
+    } else if (weatherCode case 48) {
+      return "Fog and depositing rime fog";
+    } else if (weatherCode case 51 || 53 || 55) {
+      return "Drizzle: Light, moderate, or dense intensity";
+    } else if (weatherCode case 56 || 57) {
+      return "Freezing Drizzle: Light or dense intensity";
+    } else if (weatherCode case 61 || 63 || 65) {
+      return "Rain: Slight, moderate, or heavy intensity";
+    } else if (weatherCode case 66 || 67) {
+      return "Freezing Rain: Light or heavy intensity";
+    } else if (weatherCode case 71 || 73 || 75) {
+      return "Snow fall: Slight, moderate, or heavy intensity";
+    } else if (weatherCode case 77) {
+      return "Snow grains";
+    } else if (weatherCode case 80 || 81 || 82) {
+      return "Rain showers: Slight, moderate, or violent";
+    } else if (weatherCode case 85 || 86) {
+      return "Snow showers: Slight or heavy";
+    } else if (weatherCode case 95 || 96 || 99) {
+      return "Thunderstorm: Slight or moderate";
+    } else {
+      return "Unknown weather code";
     }
   }
 
@@ -126,57 +113,49 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.lightBlue,
-      appBar: AppBar(
-        title: const Text('ClimaFlore'),
-        elevation: 0,
-        leading: Builder(
-          builder: (BuildContext context) {
-            return IconButton(
-              icon: const Icon(Icons.menu),
-              onPressed: () {
-                Scaffold.of(context).openDrawer();
-              },
-            );
-          },
-        ),
-      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(10.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 20.0),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            const SizedBox(height: 20.0),
+            Row(
+              mainAxisAlignment:
+                  MainAxisAlignment.center, // Align the row to the center
+              children: [
+                Expanded(
+                  child: Text(
+                    '${_temperature ?? ""}°C',
+                    style: const TextStyle(
+                        fontSize: 85,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            if (_apparentTemperature != null)
               Row(
                 children: [
-                  Expanded(
-                    child: Text(
-                      '${_temperature ?? ""}°C',
-                      style: const TextStyle(
-                          fontSize: 85,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold),
-                    ),
+                  const SizedBox(width: 10), // Add an empty space on the left
+                  Text(
+                    'Feels like $_apparentTemperature°C',
+                    style: const TextStyle(fontSize: 25, color: Colors.white70),
                   ),
-                  if (_weatherIcon != null)
-                    Expanded(
-                      child: Image.asset('assets/icons/$_weatherIcon',
-                          fit: BoxFit.cover),
-                    ),
                 ],
               ),
-              if (_apparentTemperature != null)
-                Text(
-                  'Feels like $_apparentTemperature°C',
-                  style: const TextStyle(fontSize: 60, color: Colors.white70),
-                ),
+            const SizedBox(
+                height: 10), // Add an empty space between the two Text widgets
+            Text(
+              'Weather Code: $_weatherCode', // Displaying weather code for debug or information
+              style: const TextStyle(fontSize: 20, color: Colors.white),
+            ),
+            if (_weatherCode != null)
               Text(
-                'Weather Code: $_weatherCode', // Displaying weather code for debug or information
+                getWeatherDescription(_weatherCode!),
                 style: const TextStyle(fontSize: 20, color: Colors.white),
               ),
-              const CircularProgressIndicator(),
-            ],
-          ),
+          ]),
         ),
       ),
     );

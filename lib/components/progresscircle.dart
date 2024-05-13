@@ -6,6 +6,7 @@ class ProgressCircle extends StatefulWidget {
   const ProgressCircle({super.key, this.color = Colors.white});
 
   @override
+  // ignore: library_private_types_in_public_api
   _ProgressCircleState createState() => _ProgressCircleState();
 }
 
