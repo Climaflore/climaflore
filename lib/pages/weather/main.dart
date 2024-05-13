@@ -108,7 +108,7 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
       DateTime now = DateTime.now();
       String todayDate = DateFormat('yyyy-MM-dd')
           .format(now); // Utilisez DateFormat de 'package:intl/intl.dart';
-      
+
       ///////////////////////////////////////////////////////////////////////////////////////////
       // Utilisation ultérieure
       // String tomorrowDate =
@@ -275,6 +275,10 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
                   itemCount: hourlyWeather.length,
                   itemBuilder: (context, index) {
                     HourlyWeather weather = hourlyWeather[index];
+                    // Utiliser _formatTemperature pour convertir la température
+                    String formattedTemperature =
+                        _formatTemperature(weather.temperature);
+
                     return Container(
                       width: 120,
                       margin: const EdgeInsets.all(8),
@@ -290,7 +294,7 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
                           Text(weather.time.substring(11, 16),
                               style: const TextStyle(
                                   color: Colors.white, fontSize: 16)),
-                          Text('${weather.temperature.round()}°C',
+                          Text(formattedTemperature,
                               style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
