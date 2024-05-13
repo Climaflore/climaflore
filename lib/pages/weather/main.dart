@@ -6,6 +6,8 @@ import 'dart:convert';
 
 import '../settings.dart';
 
+import 'package:intl/intl.dart';
+
 void main() {
   runApp(const MainWeather());
 }
@@ -22,6 +24,31 @@ class MainWeather extends StatelessWidget {
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       home: const WeatherHomeScreen(),
+    );
+  }
+}
+
+class HourlyWeather {
+  final String time;
+  final double temperature;
+  final int precipitationProbability;
+  final String weatherDescription;
+
+  HourlyWeather({
+    required this.time,
+    required this.temperature,
+    required this.precipitationProbability,
+    required this.weatherDescription,
+  });
+
+  static HourlyWeather fromJson(
+      Map<String, dynamic> json, int index, String weatherDescription) {
+    return HourlyWeather(
+      time: json['hourly']['time'][index],
+      temperature: json['hourly']['temperature_2m'][index],
+      precipitationProbability: json['hourly']['precipitation_probability']
+          [index],
+      weatherDescription: weatherDescription,
     );
   }
 }
@@ -47,6 +74,8 @@ class WeatherData {
 }
 
 class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
+  List<HourlyWeather> hourlyWeather = [];
+
   int? _temperature;
   int? _apparentTemperature;
   int? _weatherCode;
@@ -68,22 +97,41 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
     _getWeather();
   }
 
-  // Lors de la mise à jour de l'état avec les données météorologiques, utilisez _formatTemperature pour formater la température
   Future<void> _getWeather() async {
     const apiUrl =
-        'https://api.open-meteo.com/v1/forecast?latitude=45.760002&longitude=4.72&current=temperature_2m,apparent_temperature,is_day,weather_code&timezone=auto';
+        'https://api.open-meteo.com/v1/forecast?latitude=45.7485&longitude=4.8467&current=temperature_2m,apparent_temperature,weather_code&hourly=temperature_2m,precipitation_probability,weather_code&timezone=auto';
     try {
       final response = await http.get(Uri.parse(apiUrl));
       final data = jsonDecode(response.body);
+      List<HourlyWeather> loadedHourlyWeather = [];
+
+      DateTime now = DateTime.now();
+      String todayDate = DateFormat('yyyy-MM-dd')
+          .format(now); // Utilisez DateFormat de 'package:intl/intl.dart';
+
+      ///////////////////////////////////////////////////////////////////////////////////////////
+      // Utilisation ultérieure
+      // String tomorrowDate =
+      //     DateFormat('yyyy-MM-dd').format(now.add(const Duration(days: 1)));
+      ///////////////////////////////////////////////////////////////////////////////////////////
+
+      // On récupère les données météorologiques pour les prochaines heures mais seulement pour la journée actuelle
+      for (int i = 0; i < data['hourly']['time'].length; i++) {
+        String hourlyDate = data['hourly']['time'][i].substring(0, 10);
+        if (hourlyDate == todayDate) {
+          loadedHourlyWeather.add(HourlyWeather.fromJson(data, i,
+              getWeatherDescription(data['hourly']['weather_code'][i])));
+        }
+      }
 
       setState(() {
+        hourlyWeather = loadedHourlyWeather;
         _temperature = (data['current']['temperature_2m'] as double).round();
         _apparentTemperature =
             (data['current']['apparent_temperature'] as double).round();
         _weatherCode = data['current']['weather_code'];
       });
     } catch (e) {
-      // Log errors
       if (kDebugMode) {
         print('Failed to load weather data: $e');
       }
@@ -180,49 +228,91 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
         child: Padding(
           padding: const EdgeInsets.all(10.0),
           child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                const SizedBox(height: 20.0),
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              const SizedBox(height: 20.0),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _temperature != null
+                          ? _formatTemperature(_temperature!.toDouble())
+                          : "",
+                      style: const TextStyle(
+                          fontSize: 85,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              if (_apparentTemperature != null)
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        _temperature != null
-                            ? _formatTemperature(_temperature!.toDouble())
-                            : "",
-                        style: const TextStyle(
-                            fontSize: 85,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold),
-                      ),
+                    Text(
+                      'Feels like ${_formatTemperature(_apparentTemperature!.toDouble())}',
+                      style:
+                          const TextStyle(fontSize: 25, color: Colors.white70),
                     ),
                   ],
                 ),
-                if (_apparentTemperature != null)
-                  Row(
-                    children: [
-                      const SizedBox(width: 10),
-                      Text(
-                        'Feels like ${_formatTemperature(_apparentTemperature!.toDouble())}',
-                        style: const TextStyle(
-                            fontSize: 25, color: Colors.white70),
+              if (_weatherCode != null)
+                Row(
+                  children: [
+                    const SizedBox(width: 10),
+                    Text(
+                      getWeatherDescription(_weatherCode!),
+                      style: const TextStyle(fontSize: 20, color: Colors.white),
+                    ),
+                  ],
+                ),
+              Expanded(
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: hourlyWeather.length,
+                  itemBuilder: (context, index) {
+                    HourlyWeather weather = hourlyWeather[index];
+                    // Utiliser _formatTemperature pour convertir la température
+                    String formattedTemperature =
+                        _formatTemperature(weather.temperature);
+
+                    return Container(
+                      width: 120,
+                      margin: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 10, horizontal: 5),
+                      decoration: BoxDecoration(
+                        color: Colors.blueGrey,
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                    ],
-                  ),
-                if (_weatherCode != null)
-                  Row(
-                    children: [
-                      const SizedBox(width: 10),
-                      Text(
-                        getWeatherDescription(_weatherCode!),
-                        style:
-                            const TextStyle(fontSize: 20, color: Colors.white),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          Text(weather.time.substring(11, 16),
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 16)),
+                          Text(formattedTemperature,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18)),
+                          Text('${weather.precipitationProbability}%',
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 16)),
+                          Text(weather.weatherDescription,
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 14)),
+                        ],
                       ),
-                    ],
-                  ),
-              ]),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
