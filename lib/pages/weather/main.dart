@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import '../settings.dart';
+
 void main() {
   runApp(const MyApp());
 }
@@ -74,35 +76,35 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
   }
 
   String getWeatherDescription(int weatherCode) {
-    if (weatherCode case 0) {
+    if (weatherCode == 0) {
       return "Clear sky";
-    } else if (weatherCode case 1) {
+    } else if (weatherCode == 1) {
       return "Mainly clear";
-    } else if (weatherCode case 2) {
+    } else if (weatherCode == 2) {
       return "Mainly clear";
-    } else if (weatherCode case 3) {
+    } else if (weatherCode == 3) {
       return "Mainly clear";
-    } else if (weatherCode case 45) {
+    } else if (weatherCode == 45) {
       return "Fog and depositing rime fog";
-    } else if (weatherCode case 48) {
+    } else if (weatherCode == 48) {
       return "Fog and depositing rime fog";
-    } else if (weatherCode case 51 || 53 || 55) {
+    } else if (weatherCode == 51 || weatherCode == 53 || weatherCode == 55) {
       return "Drizzle: Light, moderate, or dense intensity";
-    } else if (weatherCode case 56 || 57) {
+    } else if (weatherCode == 56 || weatherCode == 57) {
       return "Freezing Drizzle: Light or dense intensity";
-    } else if (weatherCode case 61 || 63 || 65) {
+    } else if (weatherCode == 61 || weatherCode == 63 || weatherCode == 65) {
       return "Rain: Slight, moderate, or heavy intensity";
-    } else if (weatherCode case 66 || 67) {
+    } else if (weatherCode == 66 || weatherCode == 67) {
       return "Freezing Rain: Light or heavy intensity";
-    } else if (weatherCode case 71 || 73 || 75) {
+    } else if (weatherCode == 71 || weatherCode == 73 || weatherCode == 75) {
       return "Snow fall: Slight, moderate, or heavy intensity";
-    } else if (weatherCode case 77) {
+    } else if (weatherCode == 77) {
       return "Snow grains";
-    } else if (weatherCode case 80 || 81 || 82) {
+    } else if (weatherCode == 80 || weatherCode == 81 || weatherCode == 82) {
       return "Rain showers: Slight, moderate, or violent";
-    } else if (weatherCode case 85 || 86) {
+    } else if (weatherCode == 85 || weatherCode == 86) {
       return "Snow showers: Slight or heavy";
-    } else if (weatherCode case 95 || 96 || 99) {
+    } else if (weatherCode == 95 || weatherCode == 96 || weatherCode == 99) {
       return "Thunderstorm: Slight or moderate";
     } else {
       return "Unknown weather code";
@@ -127,8 +129,8 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
-          children: const <Widget>[
-            DrawerHeader(
+          children: <Widget>[
+            const DrawerHeader(
               decoration: BoxDecoration(
                 color: Colors.blue,
               ),
@@ -140,13 +142,20 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
                 ),
               ),
             ),
-            ListTile(
+            const ListTile(
               leading: Icon(Icons.home),
               title: Text('Home'),
             ),
             ListTile(
-              leading: Icon(Icons.settings),
-              title: Text('Settings'),
+              leading: const Icon(Icons.settings),
+              title: const Text('Settings'),
+              onTap: () {
+                Navigator.pushReplacement(
+                  // Remplace la page actuelle
+                  context,
+                  MaterialPageRoute(builder: (context) => const SettingsPage()),
+                );
+              },
             ),
           ],
         ),
@@ -193,7 +202,8 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
                       const SizedBox(width: 10),
                       Text(
                         getWeatherDescription(_weatherCode!),
-                        style: const TextStyle(fontSize: 20, color: Colors.white),
+                        style:
+                            const TextStyle(fontSize: 20, color: Colors.white),
                       ),
                     ],
                   ),
