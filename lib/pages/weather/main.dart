@@ -1,3 +1,4 @@
+import 'package:climaflore/config.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -5,11 +6,11 @@ import 'dart:convert';
 import '../settings.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const MainWeather());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class MainWeather extends StatelessWidget {
+  const MainWeather({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -49,28 +50,39 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
   int? _apparentTemperature;
   int? _weatherCode;
 
+  String _formatTemperature(double temperature) {
+    switch (Config.unit) {
+      case TemperatureUnit.fahrenheit:
+        // Conversion de Celsius en Fahrenheit
+        return '${(temperature * 9 / 5 + 32).round()}°F';
+      case TemperatureUnit.celsius:
+      default:
+        return '${temperature.round()}°C';
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _getWeather();
   }
 
+  // Lors de la mise à jour de l'état avec les données météorologiques, utilisez _formatTemperature pour formater la température
   Future<void> _getWeather() async {
     const apiUrl =
         'https://api.open-meteo.com/v1/forecast?latitude=45.760002&longitude=4.72&current=temperature_2m,apparent_temperature,is_day,weather_code&timezone=auto';
     try {
       final response = await http.get(Uri.parse(apiUrl));
       final data = jsonDecode(response.body);
-      int weatherCode = data['current']['weather_code'];
 
       setState(() {
         _temperature = (data['current']['temperature_2m'] as double).round();
         _apparentTemperature =
             (data['current']['apparent_temperature'] as double).round();
-        _weatherCode = weatherCode;
+        _weatherCode = data['current']['weather_code'];
       });
     } catch (e) {
-      // ignore: avoid_print
+      // Log errors
       print('Failed to load weather data: $e');
     }
   }
@@ -169,13 +181,14 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
               children: <Widget>[
                 const SizedBox(height: 20.0),
                 Row(
-                  mainAxisAlignment:
-                      MainAxisAlignment.center, // Align the row to the center
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        '${_temperature ?? ""}°C',
+                        _temperature != null
+                            ? _formatTemperature(_temperature!.toDouble())
+                            : "",
                         style: const TextStyle(
                             fontSize: 85,
                             color: Colors.white,
@@ -189,13 +202,12 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
                     children: [
                       const SizedBox(width: 10),
                       Text(
-                        'Feels like $_apparentTemperature°C',
+                        'Feels like ${_formatTemperature(_apparentTemperature!.toDouble())}',
                         style: const TextStyle(
                             fontSize: 25, color: Colors.white70),
                       ),
                     ],
                   ),
-                const SizedBox(height: 10),
                 if (_weatherCode != null)
                   Row(
                     children: [
