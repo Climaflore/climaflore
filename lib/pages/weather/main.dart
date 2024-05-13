@@ -113,8 +113,16 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Climaflore'),
-        backgroundColor: Colors.blue.shade100,
+        title: const Text('ClimaFlore'),
+        backgroundColor: Colors.blue,
+        actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              _getWeather();
+            },
+          ),
+        ],
       ),
       drawer: Drawer(
         child: ListView(
@@ -147,42 +155,49 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(10.0),
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: <Widget>[
-            const SizedBox(height: 20.0),
-            Row(
-              mainAxisAlignment:
-                  MainAxisAlignment.center, // Align the row to the center
-              children: [
-                Expanded(
-                  child: Text(
-                    '${_temperature ?? ""}°C',
-                    style: const TextStyle(
-                        fontSize: 85,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold),
-                  ),
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                const SizedBox(height: 20.0),
+                Row(
+                  mainAxisAlignment:
+                      MainAxisAlignment.center, // Align the row to the center
+                  children: [
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        '${_temperature ?? ""}°C',
+                        style: const TextStyle(
+                            fontSize: 85,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            if (_apparentTemperature != null)
-              Row(
-                children: [
-                  const SizedBox(width: 10),
-                  Text(
-                    'Feels like $_apparentTemperature°C',
-                    style: const TextStyle(fontSize: 25, color: Colors.white70),
+                if (_apparentTemperature != null)
+                  Row(
+                    children: [
+                      const SizedBox(width: 10),
+                      Text(
+                        'Feels like $_apparentTemperature°C',
+                        style: const TextStyle(
+                            fontSize: 25, color: Colors.white70),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            const SizedBox(
-                height: 10),
-            if (_weatherCode != null)
-              Text(
-              getWeatherDescription(_weatherCode!),
-              style: const TextStyle(fontSize: 20, color: Colors.white),
-              ),
-          ]),
+                const SizedBox(height: 10),
+                if (_weatherCode != null)
+                  Row(
+                    children: [
+                      const SizedBox(width: 10),
+                      Text(
+                        getWeatherDescription(_weatherCode!),
+                        style: const TextStyle(fontSize: 20, color: Colors.white),
+                      ),
+                    ],
+                  ),
+              ]),
         ),
       ),
     );
