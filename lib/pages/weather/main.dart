@@ -6,6 +6,8 @@ import 'dart:convert';
 
 import '../settings.dart';
 
+import 'package:intl/intl.dart';
+
 void main() {
   runApp(const MainWeather());
 }
@@ -103,10 +105,23 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
       final data = jsonDecode(response.body);
       List<HourlyWeather> loadedHourlyWeather = [];
 
-      // On récupère les données météorologiques pour les prochaines heures
+      DateTime now = DateTime.now();
+      String todayDate = DateFormat('yyyy-MM-dd')
+          .format(now); // Utilisez DateFormat de 'package:intl/intl.dart';
+      
+      ///////////////////////////////////////////////////////////////////////////////////////////
+      // Utilisation ultérieure
+      // String tomorrowDate =
+      //     DateFormat('yyyy-MM-dd').format(now.add(const Duration(days: 1)));
+      ///////////////////////////////////////////////////////////////////////////////////////////
+
+      // On récupère les données météorologiques pour les prochaines heures mais seulement pour la journée actuelle
       for (int i = 0; i < data['hourly']['time'].length; i++) {
-        loadedHourlyWeather.add(HourlyWeather.fromJson(
-            data, i, getWeatherDescription(data['hourly']['weather_code'][i])));
+        String hourlyDate = data['hourly']['time'][i].substring(0, 10);
+        if (hourlyDate == todayDate) {
+          loadedHourlyWeather.add(HourlyWeather.fromJson(data, i,
+              getWeatherDescription(data['hourly']['weather_code'][i])));
+        }
       }
 
       setState(() {
@@ -117,7 +132,6 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
         _weatherCode = data['current']['weather_code'];
       });
     } catch (e) {
-      // Log errors
       if (kDebugMode) {
         print('Failed to load weather data: $e');
       }
@@ -274,16 +288,16 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: <Widget>[
                           Text(weather.time.substring(11, 16),
-                              style:
-                                  const TextStyle(color: Colors.white, fontSize: 16)),
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 16)),
                           Text('${weather.temperature.round()}°C',
                               style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 18)),
                           Text('${weather.precipitationProbability}%',
-                              style:
-                                  const TextStyle(color: Colors.white, fontSize: 16)),
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 16)),
                           Text(weather.weatherDescription,
                               style: const TextStyle(
                                   color: Colors.white70, fontSize: 14)),
