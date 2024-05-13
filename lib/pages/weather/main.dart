@@ -72,6 +72,8 @@ class WeatherData {
 }
 
 class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
+  List<HourlyWeather> hourlyWeather = [];
+
   int? _temperature;
   int? _apparentTemperature;
   int? _weatherCode;
@@ -93,15 +95,22 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
     _getWeather();
   }
 
-  // Lors de la mise à jour de l'état avec les données météorologiques, utilisez _formatTemperature pour formater la température
   Future<void> _getWeather() async {
     const apiUrl =
         'https://api.open-meteo.com/v1/forecast?latitude=45.7485&longitude=4.8467&current=temperature_2m,apparent_temperature,weather_code&hourly=temperature_2m,precipitation_probability,weather_code&timezone=auto';
     try {
       final response = await http.get(Uri.parse(apiUrl));
       final data = jsonDecode(response.body);
+      List<HourlyWeather> loadedHourlyWeather = [];
+
+      // On récupère les données météorologiques pour les prochaines heures
+      for (int i = 0; i < data['hourly']['time'].length; i++) {
+        loadedHourlyWeather.add(HourlyWeather.fromJson(
+            data, i, getWeatherDescription(data['hourly']['weather_code'][i])));
+      }
 
       setState(() {
+        hourlyWeather = loadedHourlyWeather;
         _temperature = (data['current']['temperature_2m'] as double).round();
         _apparentTemperature =
             (data['current']['apparent_temperature'] as double).round();
@@ -205,54 +214,87 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
         child: Padding(
           padding: const EdgeInsets.all(10.0),
           child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                const SizedBox(height: 20.0),
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              const SizedBox(height: 20.0),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _temperature != null
+                          ? _formatTemperature(_temperature!.toDouble())
+                          : "",
+                      style: const TextStyle(
+                          fontSize: 85,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              if (_apparentTemperature != null)
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        _temperature != null
-                            ? _formatTemperature(_temperature!.toDouble())
-                            : "",
-                        style: const TextStyle(
-                            fontSize: 85,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold),
-                      ),
+                    Text(
+                      'Feels like ${_formatTemperature(_apparentTemperature!.toDouble())}',
+                      style:
+                          const TextStyle(fontSize: 25, color: Colors.white70),
                     ),
                   ],
                 ),
-                if (_apparentTemperature != null)
-                  Row(
-                    children: [
-                      const SizedBox(width: 10),
-                      Text(
-                        'Feels like ${_formatTemperature(_apparentTemperature!.toDouble())}',
-                        style: const TextStyle(
-                            fontSize: 25, color: Colors.white70),
-                      ),
-                    ],
-                  ),
-                if (_weatherCode != null)
-                  Row(
-                    children: [
-                      const SizedBox(width: 10),
-                      Text(
-                        getWeatherDescription(_weatherCode!),
-                        style:
-                            const TextStyle(fontSize: 20, color: Colors.white),
-                      ),
-                    ],
-                  ),
+              if (_weatherCode != null)
                 Row(
                   children: [
-                    // TODO : Ajouter les météos et températures de chaque heure, chaque heure doit etre englobé dans un rectangle et tout les rectangles doivent etre scrollable à l'horizontal (24 heures)
+                    const SizedBox(width: 10),
+                    Text(
+                      getWeatherDescription(_weatherCode!),
+                      style: const TextStyle(fontSize: 20, color: Colors.white),
+                    ),
                   ],
                 ),
-              ]),
+              Expanded(
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: hourlyWeather.length,
+                  itemBuilder: (context, index) {
+                    HourlyWeather weather = hourlyWeather[index];
+                    return Container(
+                      width: 120,
+                      margin: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 10, horizontal: 5),
+                      decoration: BoxDecoration(
+                        color: Colors.blueGrey,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          Text(weather.time.substring(11, 16),
+                              style:
+                                  const TextStyle(color: Colors.white, fontSize: 16)),
+                          Text('${weather.temperature.round()}°C',
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18)),
+                          Text('${weather.precipitationProbability}%',
+                              style:
+                                  const TextStyle(color: Colors.white, fontSize: 16)),
+                          Text(weather.weatherDescription,
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 14)),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
