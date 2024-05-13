@@ -1,13 +1,17 @@
+import 'package:climaflore/config.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import '../settings.dart';
+
 void main() {
-  runApp(const MyApp());
+  runApp(const MainWeather());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class MainWeather extends StatelessWidget {
+  const MainWeather({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -47,62 +51,75 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
   int? _apparentTemperature;
   int? _weatherCode;
 
+  String _formatTemperature(double temperature) {
+    switch (Config.unit) {
+      case TemperatureUnit.fahrenheit:
+        // Conversion de Celsius en Fahrenheit
+        return '${(temperature * 9 / 5 + 32).round()}°F';
+      case TemperatureUnit.celsius:
+      default:
+        return '${temperature.round()}°C';
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _getWeather();
   }
 
+  // Lors de la mise à jour de l'état avec les données météorologiques, utilisez _formatTemperature pour formater la température
   Future<void> _getWeather() async {
     const apiUrl =
         'https://api.open-meteo.com/v1/forecast?latitude=45.760002&longitude=4.72&current=temperature_2m,apparent_temperature,is_day,weather_code&timezone=auto';
     try {
       final response = await http.get(Uri.parse(apiUrl));
       final data = jsonDecode(response.body);
-      int weatherCode = data['current']['weather_code'];
 
       setState(() {
         _temperature = (data['current']['temperature_2m'] as double).round();
         _apparentTemperature =
             (data['current']['apparent_temperature'] as double).round();
-        _weatherCode = weatherCode;
+        _weatherCode = data['current']['weather_code'];
       });
     } catch (e) {
-      // ignore: avoid_print
-      print('Failed to load weather data: $e');
+      // Log errors
+      if (kDebugMode) {
+        print('Failed to load weather data: $e');
+      }
     }
   }
 
   String getWeatherDescription(int weatherCode) {
-    if (weatherCode case 0) {
+    if (weatherCode == 0) {
       return "Clear sky";
-    } else if (weatherCode case 1) {
+    } else if (weatherCode == 1) {
       return "Mainly clear";
-    } else if (weatherCode case 2) {
+    } else if (weatherCode == 2) {
       return "Mainly clear";
-    } else if (weatherCode case 3) {
+    } else if (weatherCode == 3) {
       return "Mainly clear";
-    } else if (weatherCode case 45) {
+    } else if (weatherCode == 45) {
       return "Fog and depositing rime fog";
-    } else if (weatherCode case 48) {
+    } else if (weatherCode == 48) {
       return "Fog and depositing rime fog";
-    } else if (weatherCode case 51 || 53 || 55) {
+    } else if (weatherCode == 51 || weatherCode == 53 || weatherCode == 55) {
       return "Drizzle: Light, moderate, or dense intensity";
-    } else if (weatherCode case 56 || 57) {
+    } else if (weatherCode == 56 || weatherCode == 57) {
       return "Freezing Drizzle: Light or dense intensity";
-    } else if (weatherCode case 61 || 63 || 65) {
+    } else if (weatherCode == 61 || weatherCode == 63 || weatherCode == 65) {
       return "Rain: Slight, moderate, or heavy intensity";
-    } else if (weatherCode case 66 || 67) {
+    } else if (weatherCode == 66 || weatherCode == 67) {
       return "Freezing Rain: Light or heavy intensity";
-    } else if (weatherCode case 71 || 73 || 75) {
+    } else if (weatherCode == 71 || weatherCode == 73 || weatherCode == 75) {
       return "Snow fall: Slight, moderate, or heavy intensity";
-    } else if (weatherCode case 77) {
+    } else if (weatherCode == 77) {
       return "Snow grains";
-    } else if (weatherCode case 80 || 81 || 82) {
+    } else if (weatherCode == 80 || weatherCode == 81 || weatherCode == 82) {
       return "Rain showers: Slight, moderate, or violent";
-    } else if (weatherCode case 85 || 86) {
+    } else if (weatherCode == 85 || weatherCode == 86) {
       return "Snow showers: Slight or heavy";
-    } else if (weatherCode case 95 || 96 || 99) {
+    } else if (weatherCode == 95 || weatherCode == 96 || weatherCode == 99) {
       return "Thunderstorm: Slight or moderate";
     } else {
       return "Unknown weather code";
@@ -127,8 +144,8 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
-          children: const <Widget>[
-            DrawerHeader(
+          children: <Widget>[
+            const DrawerHeader(
               decoration: BoxDecoration(
                 color: Colors.blue,
               ),
@@ -140,13 +157,20 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
                 ),
               ),
             ),
-            ListTile(
+            const ListTile(
               leading: Icon(Icons.home),
               title: Text('Home'),
             ),
             ListTile(
-              leading: Icon(Icons.settings),
-              title: Text('Settings'),
+              leading: const Icon(Icons.settings),
+              title: const Text('Settings'),
+              onTap: () {
+                Navigator.pushReplacement(
+                  // Remplace la page actuelle
+                  context,
+                  MaterialPageRoute(builder: (context) => const SettingsPage()),
+                );
+              },
             ),
           ],
         ),
@@ -160,13 +184,14 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
               children: <Widget>[
                 const SizedBox(height: 20.0),
                 Row(
-                  mainAxisAlignment:
-                      MainAxisAlignment.center, // Align the row to the center
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        '${_temperature ?? ""}°C',
+                        _temperature != null
+                            ? _formatTemperature(_temperature!.toDouble())
+                            : "",
                         style: const TextStyle(
                             fontSize: 85,
                             color: Colors.white,
@@ -180,20 +205,20 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
                     children: [
                       const SizedBox(width: 10),
                       Text(
-                        'Feels like $_apparentTemperature°C',
+                        'Feels like ${_formatTemperature(_apparentTemperature!.toDouble())}',
                         style: const TextStyle(
                             fontSize: 25, color: Colors.white70),
                       ),
                     ],
                   ),
-                const SizedBox(height: 10),
                 if (_weatherCode != null)
                   Row(
                     children: [
                       const SizedBox(width: 10),
                       Text(
                         getWeatherDescription(_weatherCode!),
-                        style: const TextStyle(fontSize: 20, color: Colors.white),
+                        style:
+                            const TextStyle(fontSize: 20, color: Colors.white),
                       ),
                     ],
                   ),
