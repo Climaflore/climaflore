@@ -26,6 +26,31 @@ class MainWeather extends StatelessWidget {
   }
 }
 
+class HourlyWeather {
+  final String time;
+  final double temperature;
+  final int precipitationProbability;
+  final String weatherDescription;
+
+  HourlyWeather({
+    required this.time,
+    required this.temperature,
+    required this.precipitationProbability,
+    required this.weatherDescription,
+  });
+
+  static HourlyWeather fromJson(
+      Map<String, dynamic> json, int index, String weatherDescription) {
+    return HourlyWeather(
+      time: json['hourly']['time'][index],
+      temperature: json['hourly']['temperature_2m'][index],
+      precipitationProbability: json['hourly']['precipitation_probability']
+          [index],
+      weatherDescription: weatherDescription,
+    );
+  }
+}
+
 class WeatherHomeScreen extends StatefulWidget {
   const WeatherHomeScreen({super.key});
 
@@ -222,11 +247,11 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
                       ),
                     ],
                   ),
-                  Row(
-                    children: [
-                      // TODO : Ajouter les météos et températures de chaque heure, chaque heure doit etre englobé dans un rectangle et tout les rectangles doivent etre scrollable à l'horizontal (24 heures)
-                    ],
-                  ),
+                Row(
+                  children: [
+                    // TODO : Ajouter les météos et températures de chaque heure, chaque heure doit etre englobé dans un rectangle et tout les rectangles doivent etre scrollable à l'horizontal (24 heures)
+                  ],
+                ),
               ]),
         ),
       ),
