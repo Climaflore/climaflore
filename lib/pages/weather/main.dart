@@ -117,7 +117,7 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
         child: Padding(
           padding: const EdgeInsets.all(10.0),
           child:
-              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: <Widget>[
             const SizedBox(height: 20.0),
             Row(
               mainAxisAlignment:
@@ -137,7 +137,7 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
             if (_apparentTemperature != null)
               Row(
                 children: [
-                  const SizedBox(width: 10), // Add an empty space on the left
+                  const SizedBox(width: 10),
                   Text(
                     'Feels like $_apparentTemperature°C',
                     style: const TextStyle(fontSize: 25, color: Colors.white70),
@@ -145,15 +145,11 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
                 ],
               ),
             const SizedBox(
-                height: 10), // Add an empty space between the two Text widgets
-            Text(
-              'Weather Code: $_weatherCode', // Displaying weather code for debug or information
-              style: const TextStyle(fontSize: 20, color: Colors.white),
-            ),
+                height: 10),
             if (_weatherCode != null)
               Text(
-                getWeatherDescription(_weatherCode!),
-                style: const TextStyle(fontSize: 20, color: Colors.white),
+              getWeatherDescription(_weatherCode!),
+              style: const TextStyle(fontSize: 20, color: Colors.white),
               ),
           ]),
         ),
