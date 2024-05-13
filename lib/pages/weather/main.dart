@@ -1,4 +1,5 @@
 import 'package:climaflore/config.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -83,7 +84,9 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
       });
     } catch (e) {
       // Log errors
-      print('Failed to load weather data: $e');
+      if (kDebugMode) {
+        print('Failed to load weather data: $e');
+      }
     }
   }
 
