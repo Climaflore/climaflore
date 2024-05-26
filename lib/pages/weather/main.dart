@@ -1,11 +1,12 @@
 import 'package:climaflore/config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 import '../settings.dart';
-
+import 'package:geocoding/geocoding.dart';
 import 'package:intl/intl.dart';
 
 void main() {
@@ -79,11 +80,13 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
   int? _temperature;
   int? _apparentTemperature;
   int? _weatherCode;
+  double? _latitude;
+  double? _longitude;
+  String? _city;
 
   String _formatTemperature(double temperature) {
     switch (Config.unit) {
       case TemperatureUnit.fahrenheit:
-        // Conversion de Celsius en Fahrenheit
         return '${(temperature * 9 / 5 + 32).round()}°F';
       case TemperatureUnit.celsius:
       default:
@@ -94,28 +97,72 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
   @override
   void initState() {
     super.initState();
-    _getWeather();
+    _determinePosition();
+  }
+
+  Future<void> _determinePosition() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return Future.error('Location services are disabled.');
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return Future.error('Location permissions are denied');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      return Future.error(
+          'Location permissions are permanently denied, we cannot request permissions.');
+    }
+
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+    setState(() {
+      _latitude = position.latitude;
+      _longitude = position.longitude;
+    });
+
+    await _getCityFromCoordinates();
+    await _getWeather();
+  }
+
+  Future<void> _getCityFromCoordinates() async {
+    if (_latitude == null || _longitude == null) return;
+
+    try {
+      List<Placemark> placemarks =
+          await placemarkFromCoordinates(_latitude!, _longitude!);
+      Placemark place = placemarks[0];
+      setState(() {
+        _city = place.locality ?? place.administrativeArea ?? place.country;
+      });
+    } catch (e) {
+      if (kDebugMode) {
+        print('Failed to get city name: $e');
+      }
+    }
   }
 
   Future<void> _getWeather() async {
-    const apiUrl =
-        'https://api.open-meteo.com/v1/forecast?latitude=45.7485&longitude=4.8467&current=temperature_2m,apparent_temperature,weather_code&hourly=temperature_2m,precipitation_probability,weather_code&timezone=auto';
+    if (_latitude == null || _longitude == null) return;
+
+    final apiUrl =
+        'https://api.open-meteo.com/v1/forecast?latitude=$_latitude&longitude=$_longitude&current=temperature_2m,apparent_temperature,weather_code&hourly=temperature_2m,precipitation_probability,weather_code&timezone=auto';
     try {
       final response = await http.get(Uri.parse(apiUrl));
       final data = jsonDecode(response.body);
       List<HourlyWeather> loadedHourlyWeather = [];
 
       DateTime now = DateTime.now();
-      String todayDate = DateFormat('yyyy-MM-dd')
-          .format(now); // Utilisez DateFormat de 'package:intl/intl.dart';
+      String todayDate = DateFormat('yyyy-MM-dd').format(now);
 
-      ///////////////////////////////////////////////////////////////////////////////////////////
-      // Utilisation ultérieure
-      // String tomorrowDate =
-      //     DateFormat('yyyy-MM-dd').format(now.add(const Duration(days: 1)));
-      ///////////////////////////////////////////////////////////////////////////////////////////
-
-      // On récupère les données météorologiques pour les prochaines heures mais seulement pour la journée actuelle
       for (int i = 0; i < data['hourly']['time'].length; i++) {
         String hourlyDate = data['hourly']['time'][i].substring(0, 10);
         if (hourlyDate == todayDate) {
@@ -184,7 +231,7 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              _getWeather();
+              _determinePosition();
             },
           ),
         ],
@@ -214,7 +261,6 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
               title: const Text('Settings'),
               onTap: () {
                 Navigator.pushReplacement(
-                  // Remplace la page actuelle
                   context,
                   MaterialPageRoute(builder: (context) => const SettingsPage()),
                 );
@@ -248,6 +294,28 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
                   ),
                 ],
               ),
+              if (_weatherCode != null)
+                Row(
+                  children: [
+                    const SizedBox(width: 10),
+                    Text(
+                      getWeatherDescription(_weatherCode!),
+                      style: const TextStyle(fontSize: 25, color: Colors.white),
+                    ),
+                  ],
+                ),
+              const SizedBox(height: 25),
+              Row(
+                children: [
+                  const SizedBox(width: 10),
+                  const Icon(Icons.location_on, color: Colors.white),
+                  const SizedBox(width: 5),
+                  Text(
+                    _city != null ? _city! : 'Current Location',
+                    style: const TextStyle(fontSize: 20, color: Colors.white),
+                  ),
+                ],
+              ),
               if (_apparentTemperature != null)
                 Row(
                   children: [
@@ -255,17 +323,7 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
                     Text(
                       'Feels like ${_formatTemperature(_apparentTemperature!.toDouble())}',
                       style:
-                          const TextStyle(fontSize: 25, color: Colors.white70),
-                    ),
-                  ],
-                ),
-              if (_weatherCode != null)
-                Row(
-                  children: [
-                    const SizedBox(width: 10),
-                    Text(
-                      getWeatherDescription(_weatherCode!),
-                      style: const TextStyle(fontSize: 20, color: Colors.white),
+                          const TextStyle(fontSize: 18, color: Colors.white70),
                     ),
                   ],
                 ),
@@ -275,7 +333,6 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
                   itemCount: hourlyWeather.length,
                   itemBuilder: (context, index) {
                     HourlyWeather weather = hourlyWeather[index];
-                    // Utiliser _formatTemperature pour convertir la température
                     String formattedTemperature =
                         _formatTemperature(weather.temperature);
 
