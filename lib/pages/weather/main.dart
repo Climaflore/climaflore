@@ -124,6 +124,9 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
 
     Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high);
+    if (kDebugMode) {
+      print('Latitude: ${position.latitude}, Longitude: ${position.longitude}');
+    }
     setState(() {
       _latitude = position.latitude;
       _longitude = position.longitude;
@@ -134,19 +137,59 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
   }
 
   Future<void> _getCityFromCoordinates() async {
-    if (_latitude == null || _longitude == null) return;
+    if (_latitude == null || _longitude == null) {
+      if (kDebugMode) {
+        print('Latitude ou longitude est null');
+      }
+      return;
+    }
 
     try {
+      if (kDebugMode) {
+        print(
+            'Appel à placemarkFromCoordinates avec latitude: $_latitude et longitude: $_longitude');
+      }
       List<Placemark> placemarks =
           await placemarkFromCoordinates(_latitude!, _longitude!);
-      Placemark place = placemarks[0];
-      setState(() {
-        _city = place.locality ?? place.administrativeArea ?? place.country;
-      });
+      if (kDebugMode) {
+        print('Placemarks length: ${placemarks.length}');
+        if (placemarks.isEmpty) {
+          print('Aucun placemark trouvé');
+        }
+        for (var placemark in placemarks) {
+          print('Placemark: ${placemark.toString()}');
+          print('Locality: ${placemark.locality}');
+          print('Administrative Area: ${placemark.administrativeArea}');
+          print('Country: ${placemark.country}');
+        }
+      }
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks[0];
+        if (kDebugMode) {
+          print('Using placemark: $place');
+        }
+        setState(() {
+          _city = place.locality ??
+              place.administrativeArea ??
+              place.country ??
+              'Unknown location';
+        });
+        if (kDebugMode) {
+          print('City set to: $_city');
+        }
+      } else {
+        setState(() {
+          _city = 'Unknown location';
+        });
+      }
     } catch (e) {
       if (kDebugMode) {
         print('Failed to get city name: $e');
+        print('Error details: ${e.toString()}');
       }
+      // setState(() {
+      //   _city = 'Error fetching location';
+      // });
     }
   }
 
