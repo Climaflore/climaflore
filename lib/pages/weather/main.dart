@@ -54,6 +54,17 @@ class HourlyWeather {
   }
 }
 
+class WeatherDay {
+  final String day;
+  final int maxTemp;
+  final int minTemp;
+  final int precipitation;
+  final IconData icon;
+
+  WeatherDay(
+      this.day, this.maxTemp, this.minTemp, this.precipitation, this.icon);
+}
+
 class WeatherHomeScreen extends StatefulWidget {
   const WeatherHomeScreen({super.key});
 
@@ -76,6 +87,14 @@ class WeatherData {
 
 class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
   List<HourlyWeather> hourlyWeather = [];
+  List<WeatherDay> weeklyWeather = [
+    WeatherDay("Aujourd'hui", 21, 13, 13, Icons.cloud),
+    WeatherDay("Mardi", 25, 14, 5, Icons.wb_sunny),
+    WeatherDay("Mercredi", 28, 15, 5, Icons.wb_sunny),
+    WeatherDay("Jeudi", 27, 16, 64, Icons.thunderstorm),
+    WeatherDay("Vendredi", 25, 16, 66, Icons.thunderstorm),
+    WeatherDay("Samedi", 22, 15, 67, Icons.wb_sunny),
+  ];
 
   int? _temperature;
   int? _apparentTemperature;
@@ -415,6 +434,41 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
                     );
                   },
                 ),
+              ),
+              const SizedBox(height: 25),
+              // Weather forecast for the week
+              Column(
+                children: weeklyWeather.map((weatherDay) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          weatherDay.day,
+                          style: const TextStyle(
+                              fontSize: 18, color: Colors.white),
+                        ),
+                        Row(
+                          children: [
+                            Icon(weatherDay.icon, color: Colors.white),
+                            const SizedBox(width: 10),
+                            Text(
+                              '${weatherDay.maxTemp}°/${weatherDay.minTemp}°',
+                              style: const TextStyle(
+                                  fontSize: 18, color: Colors.white),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          '${weatherDay.precipitation}%',
+                          style: const TextStyle(
+                              fontSize: 18, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
               ),
             ],
           ),
