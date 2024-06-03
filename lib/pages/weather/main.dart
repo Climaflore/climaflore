@@ -59,10 +59,63 @@ class WeatherDay {
   final int maxTemp;
   final int minTemp;
   final int precipitation;
-  final IconData icon;
+  final String weatherDescription;
 
-  WeatherDay(
-      this.day, this.maxTemp, this.minTemp, this.precipitation, this.icon);
+  WeatherDay({
+    required this.day,
+    required this.maxTemp,
+    required this.minTemp,
+    required this.precipitation,
+    required this.weatherDescription,
+  });
+
+  static WeatherDay fromJson(Map<String, dynamic> json, int index) {
+    return WeatherDay(
+      day: DateFormat('EEEE')
+          .format(DateTime.parse(json['daily']['time'][index])),
+      maxTemp: json['daily']['temperature_2m_max'][index].round(),
+      minTemp: json['daily']['temperature_2m_min'][index].round(),
+      precipitation: json['daily']['precipitation_probability_max'][index],
+      weatherDescription:
+          getWeatherDescription(json['daily']['weather_code'][index]),
+    );
+  }
+
+  static String getWeatherDescription(int weatherCode) {
+    if (weatherCode == 0) {
+      return "Clear sky";
+    } else if (weatherCode == 1) {
+      return "Mainly clear";
+    } else if (weatherCode == 2) {
+      return "Mainly clear";
+    } else if (weatherCode == 3) {
+      return "Mainly clear";
+    } else if (weatherCode == 45) {
+      return "Fog and depositing rime fog";
+    } else if (weatherCode == 48) {
+      return "Fog and depositing rime fog";
+    } else if (weatherCode == 51 || weatherCode == 53 || weatherCode == 55) {
+      return "Drizzle: Light, moderate, or dense intensity";
+    } else if (weatherCode == 56 || weatherCode == 57) {
+      return "Freezing Drizzle: Light or dense intensity";
+    } else if (weatherCode == 61 || weatherCode == 63 || weatherCode == 65) {
+      return "Rain: Slight, moderate, or heavy intensity";
+    } else if (weatherCode == 66 || weatherCode == 67) {
+      return "Freezing Rain: Light or heavy intensity";
+    } else if (weatherCode == 71 || weatherCode == 73 || weatherCode == 75) {
+      return "Snow fall: Slight, moderate, or heavy intensity";
+    } else if (weatherCode == 77) {
+      return "Snow grains";
+    } else if (weatherCode == 80 || weatherCode == 81 || weatherCode == 82) {
+      return "Rain showers: Slight, moderate, or violent";
+    } else if (weatherCode == 85 || weatherCode == 86) {
+      return "Snow showers: Slight or heavy";
+    } else if (weatherCode == 95 || weatherCode == 96 || weatherCode == 99) {
+      return "Thunderstorm: Slight or moderate";
+    } else {
+      return "Unknown weather code";
+    }
+  }
 }
 
 class WeatherHomeScreen extends StatefulWidget {
@@ -87,14 +140,7 @@ class WeatherData {
 
 class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
   List<HourlyWeather> hourlyWeather = [];
-  List<WeatherDay> weeklyWeather = [
-    WeatherDay("Aujourd'hui", 21, 13, 13, Icons.cloud),
-    WeatherDay("Mardi", 25, 14, 5, Icons.wb_sunny),
-    WeatherDay("Mercredi", 28, 15, 5, Icons.wb_sunny),
-    WeatherDay("Jeudi", 27, 16, 64, Icons.thunderstorm),
-    WeatherDay("Vendredi", 25, 16, 66, Icons.thunderstorm),
-    WeatherDay("Samedi", 22, 15, 67, Icons.wb_sunny),
-  ];
+  List<WeatherDay> weeklyWeather = [];
 
   int? _temperature;
   int? _apparentTemperature;
@@ -104,13 +150,7 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
   String? _city;
 
   String _formatTemperature(double temperature) {
-    switch (Config.unit) {
-      case TemperatureUnit.fahrenheit:
-        return '${(temperature * 9 / 5 + 32).round()}°F';
-      case TemperatureUnit.celsius:
-      default:
-        return '${temperature.round()}°C';
-    }
+    return '${temperature.round()}°C';
   }
 
   @override
@@ -216,11 +256,12 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
     if (_latitude == null || _longitude == null) return;
 
     final apiUrl =
-        'https://api.open-meteo.com/v1/forecast?latitude=$_latitude&longitude=$_longitude&current=temperature_2m,apparent_temperature,weather_code&hourly=temperature_2m,precipitation_probability,weather_code&timezone=auto';
+        'https://api.open-meteo.com/v1/forecast?latitude=$_latitude&longitude=$_longitude&current=temperature_2m,apparent_temperature,weather_code&hourly=temperature_2m,apparent_temperature,precipitation_probability,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto';
     try {
       final response = await http.get(Uri.parse(apiUrl));
       final data = jsonDecode(response.body);
       List<HourlyWeather> loadedHourlyWeather = [];
+      List<WeatherDay> loadedWeeklyWeather = [];
 
       DateTime now = DateTime.now();
       String todayDate = DateFormat('yyyy-MM-dd').format(now);
@@ -228,13 +269,21 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
       for (int i = 0; i < data['hourly']['time'].length; i++) {
         String hourlyDate = data['hourly']['time'][i].substring(0, 10);
         if (hourlyDate == todayDate) {
-          loadedHourlyWeather.add(HourlyWeather.fromJson(data, i,
-              getWeatherDescription(data['hourly']['weather_code'][i])));
+          loadedHourlyWeather.add(HourlyWeather.fromJson(
+              data,
+              i,
+              WeatherDay.getWeatherDescription(
+                  data['hourly']['weather_code'][i])));
         }
+      }
+
+      for (int i = 0; i < data['daily']['time'].length; i++) {
+        loadedWeeklyWeather.add(WeatherDay.fromJson(data, i));
       }
 
       setState(() {
         hourlyWeather = loadedHourlyWeather;
+        weeklyWeather = loadedWeeklyWeather;
         _temperature = (data['current']['temperature_2m'] as double).round();
         _apparentTemperature =
             (data['current']['apparent_temperature'] as double).round();
@@ -244,42 +293,6 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
       if (kDebugMode) {
         print('Failed to load weather data: $e');
       }
-    }
-  }
-
-  String getWeatherDescription(int weatherCode) {
-    if (weatherCode == 0) {
-      return "Clear sky";
-    } else if (weatherCode == 1) {
-      return "Mainly clear";
-    } else if (weatherCode == 2) {
-      return "Mainly clear";
-    } else if (weatherCode == 3) {
-      return "Mainly clear";
-    } else if (weatherCode == 45) {
-      return "Fog and depositing rime fog";
-    } else if (weatherCode == 48) {
-      return "Fog and depositing rime fog";
-    } else if (weatherCode == 51 || weatherCode == 53 || weatherCode == 55) {
-      return "Drizzle: Light, moderate, or dense intensity";
-    } else if (weatherCode == 56 || weatherCode == 57) {
-      return "Freezing Drizzle: Light or dense intensity";
-    } else if (weatherCode == 61 || weatherCode == 63 || weatherCode == 65) {
-      return "Rain: Slight, moderate, or heavy intensity";
-    } else if (weatherCode == 66 || weatherCode == 67) {
-      return "Freezing Rain: Light or heavy intensity";
-    } else if (weatherCode == 71 || weatherCode == 73 || weatherCode == 75) {
-      return "Snow fall: Slight, moderate, or heavy intensity";
-    } else if (weatherCode == 77) {
-      return "Snow grains";
-    } else if (weatherCode == 80 || weatherCode == 81 || weatherCode == 82) {
-      return "Rain showers: Slight, moderate, or violent";
-    } else if (weatherCode == 85 || weatherCode == 86) {
-      return "Snow showers: Slight or heavy";
-    } else if (weatherCode == 95 || weatherCode == 96 || weatherCode == 99) {
-      return "Thunderstorm: Slight or moderate";
-    } else {
-      return "Unknown weather code";
     }
   }
 
@@ -366,7 +379,7 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
                   children: [
                     const SizedBox(width: 10),
                     Text(
-                      getWeatherDescription(_weatherCode!),
+                      WeatherDay.getWeatherDescription(_weatherCode!),
                       style: const TextStyle(fontSize: 25, color: Colors.white),
                     ),
                   ],
@@ -451,7 +464,8 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
                         ),
                         Row(
                           children: [
-                            Icon(weatherDay.icon, color: Colors.white),
+                            Icon(_getWeatherIcon(weatherDay.weatherDescription),
+                                color: Colors.white),
                             const SizedBox(width: 10),
                             Text(
                               '${weatherDay.maxTemp}°/${weatherDay.minTemp}°',
@@ -475,5 +489,31 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
         ),
       ),
     );
+  }
+
+  IconData _getWeatherIcon(String description) {
+    switch (description) {
+      case "Clear sky":
+        return Icons.wb_sunny;
+      case "Mainly clear":
+        return Icons.wb_cloudy;
+      case "Fog and depositing rime fog":
+        return Icons.foggy;
+      case "Drizzle: Light, moderate, or dense intensity":
+      case "Freezing Drizzle: Light or dense intensity":
+      case "Rain: Slight, moderate, or heavy intensity":
+      case "Freezing Rain: Light or heavy intensity":
+        return Icons.grain;
+      case "Snow fall: Slight, moderate, or heavy intensity":
+      case "Snow grains":
+        return Icons.ac_unit;
+      case "Rain showers: Slight, moderate, or violent":
+      case "Snow showers: Slight or heavy":
+        return Icons.shower;
+      case "Thunderstorm: Slight or moderate":
+        return Icons.thunderstorm;
+      default:
+        return Icons.help_outline;
+    }
   }
 }
