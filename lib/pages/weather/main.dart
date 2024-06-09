@@ -99,7 +99,7 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
 
   Future<void> _getWeather() async {
     const apiUrl =
-        'https://api.open-meteo.com/v1/forecast?latitude=45.7485&longitude=4.8467&current=temperature_2m,apparent_temperature,weather_code&hourly=temperature_2m,precipitation_probability,weather_code&timezone=auto';
+        'https://api.open-meteo.com/v1/forecast?latitude=45.7453&longitude=4.7232&current=temperature_2m,apparent_temperature,is_day,weather_code&hourly=temperature_2m,precipitation_probability,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max&timezone=auto';
     try {
       final response = await http.get(Uri.parse(apiUrl));
       final data = jsonDecode(response.body);
