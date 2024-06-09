@@ -3,10 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:intl/intl.dart';
 
 import '../settings.dart';
-
-import 'package:intl/intl.dart';
 
 void main() {
   runApp(const MainWeather());
@@ -33,12 +32,14 @@ class HourlyWeather {
   final double temperature;
   final int precipitationProbability;
   final String weatherDescription;
+  final bool? isDay;
 
   HourlyWeather({
     required this.time,
     required this.temperature,
     required this.precipitationProbability,
     required this.weatherDescription,
+    required this.isDay,
   });
 
   static HourlyWeather fromJson(
@@ -46,9 +47,32 @@ class HourlyWeather {
     return HourlyWeather(
       time: json['hourly']['time'][index],
       temperature: json['hourly']['temperature_2m'][index],
-      precipitationProbability: json['hourly']['precipitation_probability']
-          [index],
+      precipitationProbability: json['hourly']['precipitation_probability'][index],
       weatherDescription: weatherDescription,
+      isDay: (json['hourly']['is_day'][index] as int?) == 1,
+    );
+  }
+}
+
+class WeatherData {
+  final int? temperature;
+  final int? apparentTemperature;
+  final int? weatherCode;
+  final bool? isDay;
+
+  WeatherData({
+    this.temperature,
+    this.apparentTemperature,
+    this.weatherCode,
+    this.isDay,
+  });
+
+  factory WeatherData.fromJson(Map<String, dynamic> json) {
+    return WeatherData(
+      temperature: (json['current']['temperature_2m'] as double?)?.round(),
+      apparentTemperature: (json['current']['apparent_temperature'] as double?)?.round(),
+      weatherCode: json['current']['weather_code'],
+      isDay: (json['current']['is_day'] as int?) == 1,
     );
   }
 }
@@ -57,33 +81,19 @@ class WeatherHomeScreen extends StatefulWidget {
   const WeatherHomeScreen({super.key});
 
   @override
-  // ignore: library_private_types_in_public_api
   _WeatherHomeScreenState createState() => _WeatherHomeScreenState();
-}
-
-class WeatherData {
-  final int? temperature;
-
-  WeatherData({this.temperature});
-
-  factory WeatherData.fromJson(Map<String, dynamic> json) {
-    return WeatherData(
-      temperature: (json['current']['temperature_2m'] as double?)?.round(),
-    );
-  }
 }
 
 class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
   List<HourlyWeather> hourlyWeather = [];
-
   int? _temperature;
   int? _apparentTemperature;
   int? _weatherCode;
+  bool? _isDay;
 
   String _formatTemperature(double temperature) {
     switch (Config.unit) {
       case TemperatureUnit.fahrenheit:
-        // Conversion de Celsius en Fahrenheit
         return '${(temperature * 9 / 5 + 32).round()}°F';
       case TemperatureUnit.celsius:
       default:
@@ -99,23 +109,15 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
 
   Future<void> _getWeather() async {
     const apiUrl =
-        'https://api.open-meteo.com/v1/forecast?latitude=45.7453&longitude=4.7232&current=temperature_2m,apparent_temperature,is_day,weather_code&hourly=temperature_2m,precipitation_probability,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max&timezone=auto';
+        'https://api.open-meteo.com/v1/forecast?latitude=45.7453&longitude=4.7232&current=temperature_2m,apparent_temperature,is_day,weather_code&hourly=temperature_2m,precipitation_probability,weather_code,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max&timezone=auto';
     try {
       final response = await http.get(Uri.parse(apiUrl));
       final data = jsonDecode(response.body);
       List<HourlyWeather> loadedHourlyWeather = [];
 
       DateTime now = DateTime.now();
-      String todayDate = DateFormat('yyyy-MM-dd')
-          .format(now); // Utilisez DateFormat de 'package:intl/intl.dart';
+      String todayDate = DateFormat('yyyy-MM-dd').format(now);
 
-      ///////////////////////////////////////////////////////////////////////////////////////////
-      // Utilisation ultérieure
-      // String tomorrowDate =
-      //     DateFormat('yyyy-MM-dd').format(now.add(const Duration(days: 1)));
-      ///////////////////////////////////////////////////////////////////////////////////////////
-
-      // On récupère les données météorologiques pour les prochaines heures mais seulement pour la journée actuelle
       for (int i = 0; i < data['hourly']['time'].length; i++) {
         String hourlyDate = data['hourly']['time'][i].substring(0, 10);
         if (hourlyDate == todayDate) {
@@ -127,9 +129,9 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
       setState(() {
         hourlyWeather = loadedHourlyWeather;
         _temperature = (data['current']['temperature_2m'] as double).round();
-        _apparentTemperature =
-            (data['current']['apparent_temperature'] as double).round();
+        _apparentTemperature = (data['current']['apparent_temperature'] as double).round();
         _weatherCode = data['current']['weather_code'];
+        _isDay = (data['current']['is_day'] as int?) == 1;
       });
     } catch (e) {
       if (kDebugMode) {
@@ -214,7 +216,6 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
               title: const Text('Settings'),
               onTap: () {
                 Navigator.pushReplacement(
-                  // Remplace la page actuelle
                   context,
                   MaterialPageRoute(builder: (context) => const SettingsPage()),
                 );
@@ -250,12 +251,11 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
               ),
               if (_apparentTemperature != null)
                 Row(
-                  children: [
+                  children: [ 
                     const SizedBox(width: 10),
                     Text(
                       'Feels like ${_formatTemperature(_apparentTemperature!.toDouble())}',
-                      style:
-                          const TextStyle(fontSize: 25, color: Colors.white70),
+                      style: const TextStyle(fontSize: 25, color: Colors.white70),
                     ),
                   ],
                 ),
@@ -267,6 +267,11 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
                       getWeatherDescription(_weatherCode!),
                       style: const TextStyle(fontSize: 20, color: Colors.white),
                     ),
+                    if (_isDay != null)
+                      Icon(
+                        _isDay! ? Icons.wb_sunny : Icons.nights_stay,
+                        color: Colors.white,
+                      ),
                   ],
                 ),
               Expanded(
@@ -275,7 +280,6 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
                   itemCount: hourlyWeather.length,
                   itemBuilder: (context, index) {
                     HourlyWeather weather = hourlyWeather[index];
-                    // Utiliser _formatTemperature pour convertir la température
                     String formattedTemperature =
                         _formatTemperature(weather.temperature);
 
@@ -305,6 +309,10 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
                           Text(weather.weatherDescription,
                               style: const TextStyle(
                                   color: Colors.white70, fontSize: 14)),
+                          Icon(
+                            weather.isDay == true ? Icons.wb_sunny : Icons.nights_stay,
+                            color: Colors.white,
+                          ),
                         ],
                       ),
                     );
