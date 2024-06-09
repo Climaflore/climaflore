@@ -27,6 +27,33 @@ class MainWeather extends StatelessWidget {
   }
 }
 
+class DailyWeather {
+  final String date;
+  final double maxTemperature;
+  final double minTemperature;
+  final int precipitationProbability;
+  final String weatherDescription;
+
+  DailyWeather({
+    required this.date,
+    required this.maxTemperature,
+    required this.minTemperature,
+    required this.precipitationProbability,
+    required this.weatherDescription,
+  });
+
+  static DailyWeather fromJson(Map<String, dynamic> json, int index, String weatherDescription) {
+    return DailyWeather(
+      date: json['daily']['time'][index],
+      maxTemperature: json['daily']['temperature_2m_max'][index],
+      minTemperature: json['daily']['temperature_2m_min'][index],
+      precipitationProbability: json['daily']['precipitation_probability_max'][index],
+      weatherDescription: weatherDescription,
+    );
+  }
+}
+
+
 class HourlyWeather {
   final String time;
   final double temperature;
@@ -86,6 +113,7 @@ class WeatherHomeScreen extends StatefulWidget {
 
 class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
   List<HourlyWeather> hourlyWeather = [];
+  List<DailyWeather> dailyWeather = [];
   int? _temperature;
   int? _apparentTemperature;
   int? _weatherCode;
@@ -114,6 +142,7 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
       final response = await http.get(Uri.parse(apiUrl));
       final data = jsonDecode(response.body);
       List<HourlyWeather> loadedHourlyWeather = [];
+      List<DailyWeather> loadedDailyWeather = [];
 
       DateTime now = DateTime.now();
       String todayDate = DateFormat('yyyy-MM-dd').format(now);
@@ -126,8 +155,14 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
         }
       }
 
+      for (int i = 0; i < data['daily']['time'].length; i++) {
+        loadedDailyWeather.add(DailyWeather.fromJson(data, i,
+            getWeatherDescription(data['daily']['weather_code'][i])));
+      }
+
       setState(() {
         hourlyWeather = loadedHourlyWeather;
+        dailyWeather = loadedDailyWeather;
         _temperature = (data['current']['temperature_2m'] as double).round();
         _apparentTemperature = (data['current']['apparent_temperature'] as double).round();
         _weatherCode = data['current']['weather_code'];
@@ -251,7 +286,7 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
               ),
               if (_apparentTemperature != null)
                 Row(
-                  children: [ 
+                  children: [
                     const SizedBox(width: 10),
                     Text(
                       'Feels like ${_formatTemperature(_apparentTemperature!.toDouble())}',
@@ -312,6 +347,55 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
                           Icon(
                             weather.isDay == true ? Icons.wb_sunny : Icons.nights_stay,
                             color: Colors.white,
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                '7-Day Forecast',
+                style: TextStyle(
+                    fontSize: 25,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: dailyWeather.length,
+                  itemBuilder: (context, index) {
+                    DailyWeather weather = dailyWeather[index];
+                    return Container(
+                      margin: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 5),
+                      decoration: BoxDecoration(
+                        color: Colors.blueGrey,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            DateFormat('EEEE, MMM d').format(DateTime.parse(weather.date)),
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 18),
+                          ),
+                          Text(
+                            'Max: ${_formatTemperature(weather.maxTemperature)}, Min: ${_formatTemperature(weather.minTemperature)}',
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 16),
+                          ),
+                          Text(
+                            'Precipitation Probability: ${weather.precipitationProbability}%',
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 16),
+                          ),
+                          Text(
+                            weather.weatherDescription,
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 14),
                           ),
                         ],
                       ),
