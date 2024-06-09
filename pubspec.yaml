@@ -63,6 +63,13 @@ flutter:
   assets:
     - assets/logo.png
     - assets/nom.png
+    - assets/backgrounds/cloudy.png
+    - assets/backgrounds/day.png
+    - assets/backgrounds/night_rainy.png
+    - assets/backgrounds/night_stormy.png
+    - assets/backgrounds/night.png
+    - assets/backgrounds/rainy.png
+    - assets/backgrounds/stormy.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:
