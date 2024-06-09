@@ -6,6 +6,8 @@ import 'dart:convert';
 import 'package:intl/intl.dart';
 
 import '../settings.dart';
+import '../search.dart';
+import '../favorites.dart';
 
 void main() {
   runApp(const MainWeather());
@@ -27,83 +29,6 @@ class MainWeather extends StatelessWidget {
   }
 }
 
-class DailyWeather {
-  final String date;
-  final double maxTemperature;
-  final double minTemperature;
-  final int precipitationProbability;
-  final String weatherDescription;
-
-  DailyWeather({
-    required this.date,
-    required this.maxTemperature,
-    required this.minTemperature,
-    required this.precipitationProbability,
-    required this.weatherDescription,
-  });
-
-  static DailyWeather fromJson(Map<String, dynamic> json, int index, String weatherDescription) {
-    return DailyWeather(
-      date: json['daily']['time'][index],
-      maxTemperature: json['daily']['temperature_2m_max'][index],
-      minTemperature: json['daily']['temperature_2m_min'][index],
-      precipitationProbability: json['daily']['precipitation_probability_max'][index],
-      weatherDescription: weatherDescription,
-    );
-  }
-}
-
-
-class HourlyWeather {
-  final String time;
-  final double temperature;
-  final int precipitationProbability;
-  final String weatherDescription;
-  final bool? isDay;
-
-  HourlyWeather({
-    required this.time,
-    required this.temperature,
-    required this.precipitationProbability,
-    required this.weatherDescription,
-    required this.isDay,
-  });
-
-  static HourlyWeather fromJson(
-      Map<String, dynamic> json, int index, String weatherDescription) {
-    return HourlyWeather(
-      time: json['hourly']['time'][index],
-      temperature: json['hourly']['temperature_2m'][index],
-      precipitationProbability: json['hourly']['precipitation_probability'][index],
-      weatherDescription: weatherDescription,
-      isDay: (json['hourly']['is_day'][index] as int?) == 1,
-    );
-  }
-}
-
-class WeatherData {
-  final int? temperature;
-  final int? apparentTemperature;
-  final int? weatherCode;
-  final bool? isDay;
-
-  WeatherData({
-    this.temperature,
-    this.apparentTemperature,
-    this.weatherCode,
-    this.isDay,
-  });
-
-  factory WeatherData.fromJson(Map<String, dynamic> json) {
-    return WeatherData(
-      temperature: (json['current']['temperature_2m'] as double?)?.round(),
-      apparentTemperature: (json['current']['apparent_temperature'] as double?)?.round(),
-      weatherCode: json['current']['weather_code'],
-      isDay: (json['current']['is_day'] as int?) == 1,
-    );
-  }
-}
-
 class WeatherHomeScreen extends StatefulWidget {
   const WeatherHomeScreen({super.key});
 
@@ -112,6 +37,55 @@ class WeatherHomeScreen extends StatefulWidget {
 }
 
 class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
+  int _selectedIndex = 0;
+
+  static const List<Widget> _pages = <Widget>[
+    WeatherPage(),
+    SearchPage(),
+    FavoritesPage(),
+  ];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _pages[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.search),
+            label: 'Search',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.favorite),
+            label: 'Favorites',
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.amber[800],
+        onTap: _onItemTapped,
+      ),
+    );
+  }
+}
+
+class WeatherPage extends StatefulWidget {
+  const WeatherPage({super.key});
+
+  @override
+  _WeatherPageState createState() => _WeatherPageState();
+}
+
+class _WeatherPageState extends State<WeatherPage> {
   List<HourlyWeather> hourlyWeather = [];
   List<DailyWeather> dailyWeather = [];
   int? _temperature;
@@ -462,6 +436,82 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class DailyWeather {
+  final String date;
+  final double maxTemperature;
+  final double minTemperature;
+  final int precipitationProbability;
+  final String weatherDescription;
+
+  DailyWeather({
+    required this.date,
+    required this.maxTemperature,
+    required this.minTemperature,
+    required this.precipitationProbability,
+    required this.weatherDescription,
+  });
+
+  static DailyWeather fromJson(Map<String, dynamic> json, int index, String weatherDescription) {
+    return DailyWeather(
+      date: json['daily']['time'][index],
+      maxTemperature: json['daily']['temperature_2m_max'][index],
+      minTemperature: json['daily']['temperature_2m_min'][index],
+      precipitationProbability: json['daily']['precipitation_probability_max'][index],
+      weatherDescription: weatherDescription,
+    );
+  }
+}
+
+class HourlyWeather {
+  final String time;
+  final double temperature;
+  final int precipitationProbability;
+  final String weatherDescription;
+  final bool? isDay;
+
+  HourlyWeather({
+    required this.time,
+    required this.temperature,
+    required this.precipitationProbability,
+    required this.weatherDescription,
+    required this.isDay,
+  });
+
+  static HourlyWeather fromJson(
+      Map<String, dynamic> json, int index, String weatherDescription) {
+    return HourlyWeather(
+      time: json['hourly']['time'][index],
+      temperature: json['hourly']['temperature_2m'][index],
+      precipitationProbability: json['hourly']['precipitation_probability'][index],
+      weatherDescription: weatherDescription,
+      isDay: (json['hourly']['is_day'][index] as int?) == 1,
+    );
+  }
+}
+
+class WeatherData {
+  final int? temperature;
+  final int? apparentTemperature;
+  final int? weatherCode;
+  final bool? isDay;
+
+  WeatherData({
+    this.temperature,
+    this.apparentTemperature,
+    this.weatherCode,
+    this.isDay,
+  });
+
+  factory WeatherData.fromJson(Map<String, dynamic> json) {
+    return WeatherData(
+      temperature: (json['current']['temperature_2m'] as double?)?.round(),
+      apparentTemperature: (json['current']['apparent_temperature'] as double?)?.round(),
+      weatherCode: json['current']['weather_code'],
+      isDay: (json['current']['is_day'] as int?) == 1,
     );
   }
 }
