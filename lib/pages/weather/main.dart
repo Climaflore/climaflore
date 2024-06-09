@@ -118,6 +118,7 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
   int? _apparentTemperature;
   int? _weatherCode;
   bool? _isDay;
+  String? _backgroundImage;
 
   String _formatTemperature(double temperature) {
     switch (Config.unit) {
@@ -167,12 +168,55 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
         _apparentTemperature = (data['current']['apparent_temperature'] as double).round();
         _weatherCode = data['current']['weather_code'];
         _isDay = (data['current']['is_day'] as int?) == 1;
+        _backgroundImage = _getBackgroundImage(_weatherCode, _isDay);
       });
     } catch (e) {
       if (kDebugMode) {
         print('Failed to load weather data: $e');
       }
     }
+  }
+
+  String _getBackgroundImage(int? weatherCode, bool? isDay) {
+    if (weatherCode == null || isDay == null) {
+      return 'assets/backgrounds/cloudy.png';
+    }
+
+    if (isDay) {
+      if (weatherCode == 0) {
+        return 'assets/backgrounds/day.png';
+      } else if (weatherCode >= 1 && weatherCode <= 3) {
+        return 'assets/backgrounds/cloudy.png';
+      } else if (weatherCode >= 51 && weatherCode <= 57) {
+        return 'assets/backgrounds/rainy.png';
+      } else if (weatherCode >= 61 && weatherCode <= 67) {
+        return 'assets/backgrounds/rainy.png';
+      } else if (weatherCode >= 71 && weatherCode <= 77) {
+        return 'assets/backgrounds/snowy.png';
+      } else if (weatherCode >= 80 && weatherCode <= 82) {
+        return 'assets/backgrounds/rainy.png';
+      } else if (weatherCode >= 95 && weatherCode <= 99) {
+        return 'assets/backgrounds/stormy.png';
+      }
+    } else {
+      if (weatherCode == 0) {
+        return 'assets/backgrounds/night.png';
+      } else if (weatherCode >= 1 && weatherCode <= 3) {
+        return 'assets/backgrounds/night.png';
+      } else if (weatherCode >= 51 && weatherCode <= 57) {
+        return 'assets/backgrounds/night_rainy.png';
+      } else if (weatherCode >= 61 && weatherCode <= 67) {
+        return 'assets/backgrounds/night_rainy.png';
+      } else if (weatherCode >= 71 && weatherCode <= 77) {
+        return 'assets/backgrounds/night_snowy.png';
+      } else if (weatherCode >= 80 && weatherCode <= 82) {
+        return 'assets/backgrounds/night_rainy.png';
+      } else if (weatherCode >= 95 && weatherCode <= 99) {
+        return 'assets/backgrounds/night_stormy.png';
+      }
+    }
+
+    return 'assets/backgrounds/cloudy.png';
   }
 
   String getWeatherDescription(int weatherCode) {
@@ -259,153 +303,164 @@ class _WeatherHomeScreenState extends State<WeatherHomeScreen> {
           ],
         ),
       ),
-      backgroundColor: Colors.lightBlue,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(10.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              const SizedBox(height: 20.0),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(width: 10),
+      body: Stack(
+        children: [
+          if (_backgroundImage != null)
+            Image.asset(
+              _backgroundImage!,
+              fit: BoxFit.cover,
+              height: double.infinity,
+              width: double.infinity,
+              alignment: Alignment.center,
+            ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(10.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  const SizedBox(height: 20.0),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _temperature != null
+                              ? _formatTemperature(_temperature!.toDouble())
+                              : "",
+                          style: const TextStyle(
+                              fontSize: 85,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_apparentTemperature != null)
+                    Row(
+                      children: [
+                        const SizedBox(width: 10),
+                        Text(
+                          'Feels like ${_formatTemperature(_apparentTemperature!.toDouble())}',
+                          style: const TextStyle(fontSize: 25, color: Colors.white70),
+                        ),
+                      ],
+                    ),
+                  if (_weatherCode != null)
+                    Row(
+                      children: [
+                        const SizedBox(width: 10),
+                        Text(
+                          getWeatherDescription(_weatherCode!),
+                          style: const TextStyle(fontSize: 20, color: Colors.white),
+                        ),
+                        if (_isDay != null)
+                          Icon(
+                            _isDay! ? Icons.wb_sunny : Icons.nights_stay,
+                            color: Colors.white,
+                          ),
+                      ],
+                    ),
                   Expanded(
-                    child: Text(
-                      _temperature != null
-                          ? _formatTemperature(_temperature!.toDouble())
-                          : "",
-                      style: const TextStyle(
-                          fontSize: 85,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold),
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: hourlyWeather.length,
+                      itemBuilder: (context, index) {
+                        HourlyWeather weather = hourlyWeather[index];
+                        String formattedTemperature =
+                            _formatTemperature(weather.temperature);
+
+                        return Container(
+                          width: 120,
+                          margin: const EdgeInsets.all(8),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 10, horizontal: 5),
+                          decoration: BoxDecoration(
+                            color: Colors.blueGrey.withOpacity(0.7),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: <Widget>[
+                              Text(weather.time.substring(11, 16),
+                                  style: const TextStyle(
+                                      color: Colors.white, fontSize: 16)),
+                              Text(formattedTemperature,
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18)),
+                              Text('${weather.precipitationProbability}%',
+                                  style: const TextStyle(
+                                      color: Colors.white, fontSize: 16)),
+                              Text(weather.weatherDescription,
+                                  style: const TextStyle(
+                                      color: Colors.white70, fontSize: 14)),
+                              Icon(
+                                weather.isDay == true ? Icons.wb_sunny : Icons.nights_stay,
+                                color: Colors.white,
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    '7-Day Forecast',
+                    style: TextStyle(
+                        fontSize: 25,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold),
+                  ),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: dailyWeather.length,
+                      itemBuilder: (context, index) {
+                        DailyWeather weather = dailyWeather[index];
+                        return Container(
+                          margin: const EdgeInsets.all(8),
+                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 5),
+                          decoration: BoxDecoration(
+                            color: Colors.blueGrey.withOpacity(0.7),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Text(
+                                DateFormat('EEEE, MMM d').format(DateTime.parse(weather.date)),
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 18),
+                              ),
+                              Text(
+                                'Max: ${_formatTemperature(weather.maxTemperature)}, Min: ${_formatTemperature(weather.minTemperature)}',
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 16),
+                              ),
+                              Text(
+                                'Precipitation Probability: ${weather.precipitationProbability}%',
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 16),
+                              ),
+                              Text(
+                                weather.weatherDescription,
+                                style: const TextStyle(
+                                    color: Colors.white70, fontSize: 14),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],
               ),
-              if (_apparentTemperature != null)
-                Row(
-                  children: [
-                    const SizedBox(width: 10),
-                    Text(
-                      'Feels like ${_formatTemperature(_apparentTemperature!.toDouble())}',
-                      style: const TextStyle(fontSize: 25, color: Colors.white70),
-                    ),
-                  ],
-                ),
-              if (_weatherCode != null)
-                Row(
-                  children: [
-                    const SizedBox(width: 10),
-                    Text(
-                      getWeatherDescription(_weatherCode!),
-                      style: const TextStyle(fontSize: 20, color: Colors.white),
-                    ),
-                    if (_isDay != null)
-                      Icon(
-                        _isDay! ? Icons.wb_sunny : Icons.nights_stay,
-                        color: Colors.white,
-                      ),
-                  ],
-                ),
-              Expanded(
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: hourlyWeather.length,
-                  itemBuilder: (context, index) {
-                    HourlyWeather weather = hourlyWeather[index];
-                    String formattedTemperature =
-                        _formatTemperature(weather.temperature);
-
-                    return Container(
-                      width: 120,
-                      margin: const EdgeInsets.all(8),
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 10, horizontal: 5),
-                      decoration: BoxDecoration(
-                        color: Colors.blueGrey,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                          Text(weather.time.substring(11, 16),
-                              style: const TextStyle(
-                                  color: Colors.white, fontSize: 16)),
-                          Text(formattedTemperature,
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18)),
-                          Text('${weather.precipitationProbability}%',
-                              style: const TextStyle(
-                                  color: Colors.white, fontSize: 16)),
-                          Text(weather.weatherDescription,
-                              style: const TextStyle(
-                                  color: Colors.white70, fontSize: 14)),
-                          Icon(
-                            weather.isDay == true ? Icons.wb_sunny : Icons.nights_stay,
-                            color: Colors.white,
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                '7-Day Forecast',
-                style: TextStyle(
-                    fontSize: 25,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: dailyWeather.length,
-                  itemBuilder: (context, index) {
-                    DailyWeather weather = dailyWeather[index];
-                    return Container(
-                      margin: const EdgeInsets.all(8),
-                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 5),
-                      decoration: BoxDecoration(
-                        color: Colors.blueGrey,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(
-                            DateFormat('EEEE, MMM d').format(DateTime.parse(weather.date)),
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 18),
-                          ),
-                          Text(
-                            'Max: ${_formatTemperature(weather.maxTemperature)}, Min: ${_formatTemperature(weather.minTemperature)}',
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 16),
-                          ),
-                          Text(
-                            'Precipitation Probability: ${weather.precipitationProbability}%',
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 16),
-                          ),
-                          Text(
-                            weather.weatherDescription,
-                            style: const TextStyle(
-                                color: Colors.white70, fontSize: 14),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
