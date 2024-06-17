@@ -9,6 +9,8 @@ import '../settings.dart';
 import '../search.dart';
 import '../favorites.dart';
 
+import 'package:location/location.dart';
+
 void main() {
   runApp(const MainWeather());
 }
@@ -131,15 +133,16 @@ class _WeatherPageState extends State<WeatherPage> {
       }
 
       for (int i = 0; i < data['daily']['time'].length; i++) {
-        loadedDailyWeather.add(DailyWeather.fromJson(data, i,
-            getWeatherDescription(data['daily']['weather_code'][i])));
+        loadedDailyWeather.add(DailyWeather.fromJson(
+            data, i, getWeatherDescription(data['daily']['weather_code'][i])));
       }
 
       setState(() {
         hourlyWeather = loadedHourlyWeather;
         dailyWeather = loadedDailyWeather;
         _temperature = (data['current']['temperature_2m'] as double).round();
-        _apparentTemperature = (data['current']['apparent_temperature'] as double).round();
+        _apparentTemperature =
+            (data['current']['apparent_temperature'] as double).round();
         _weatherCode = data['current']['weather_code'];
         _isDay = (data['current']['is_day'] as int?) == 1;
         _backgroundImage = _getBackgroundImage(_weatherCode, _isDay);
@@ -317,7 +320,8 @@ class _WeatherPageState extends State<WeatherPage> {
                         const SizedBox(width: 10),
                         Text(
                           'Feels like ${_formatTemperature(_apparentTemperature!.toDouble())}',
-                          style: const TextStyle(fontSize: 25, color: Colors.white70),
+                          style: const TextStyle(
+                              fontSize: 25, color: Colors.white70),
                         ),
                       ],
                     ),
@@ -327,7 +331,8 @@ class _WeatherPageState extends State<WeatherPage> {
                         const SizedBox(width: 10),
                         Text(
                           getWeatherDescription(_weatherCode!),
-                          style: const TextStyle(fontSize: 20, color: Colors.white),
+                          style: const TextStyle(
+                              fontSize: 20, color: Colors.white),
                         ),
                         if (_isDay != null)
                           Icon(
@@ -372,7 +377,9 @@ class _WeatherPageState extends State<WeatherPage> {
                                   style: const TextStyle(
                                       color: Colors.white70, fontSize: 14)),
                               Icon(
-                                weather.isDay == true ? Icons.wb_sunny : Icons.nights_stay,
+                                weather.isDay == true
+                                    ? Icons.wb_sunny
+                                    : Icons.nights_stay,
                                 color: Colors.white,
                               ),
                             ],
@@ -396,7 +403,8 @@ class _WeatherPageState extends State<WeatherPage> {
                         DailyWeather weather = dailyWeather[index];
                         return Container(
                           margin: const EdgeInsets.all(8),
-                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 5),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 10, horizontal: 5),
                           decoration: BoxDecoration(
                             color: Colors.blueGrey.withOpacity(0.7),
                             borderRadius: BorderRadius.circular(10),
@@ -405,7 +413,8 @@ class _WeatherPageState extends State<WeatherPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
                               Text(
-                                DateFormat('EEEE, MMM d').format(DateTime.parse(weather.date)),
+                                DateFormat('EEEE, MMM d')
+                                    .format(DateTime.parse(weather.date)),
                                 style: const TextStyle(
                                     color: Colors.white, fontSize: 18),
                               ),
@@ -455,12 +464,14 @@ class DailyWeather {
     required this.weatherDescription,
   });
 
-  static DailyWeather fromJson(Map<String, dynamic> json, int index, String weatherDescription) {
+  static DailyWeather fromJson(
+      Map<String, dynamic> json, int index, String weatherDescription) {
     return DailyWeather(
       date: json['daily']['time'][index],
       maxTemperature: json['daily']['temperature_2m_max'][index],
       minTemperature: json['daily']['temperature_2m_min'][index],
-      precipitationProbability: json['daily']['precipitation_probability_max'][index],
+      precipitationProbability: json['daily']['precipitation_probability_max']
+          [index],
       weatherDescription: weatherDescription,
     );
   }
@@ -486,7 +497,8 @@ class HourlyWeather {
     return HourlyWeather(
       time: json['hourly']['time'][index],
       temperature: json['hourly']['temperature_2m'][index],
-      precipitationProbability: json['hourly']['precipitation_probability'][index],
+      precipitationProbability: json['hourly']['precipitation_probability']
+          [index],
       weatherDescription: weatherDescription,
       isDay: (json['hourly']['is_day'][index] as int?) == 1,
     );
@@ -509,7 +521,8 @@ class WeatherData {
   factory WeatherData.fromJson(Map<String, dynamic> json) {
     return WeatherData(
       temperature: (json['current']['temperature_2m'] as double?)?.round(),
-      apparentTemperature: (json['current']['apparent_temperature'] as double?)?.round(),
+      apparentTemperature:
+          (json['current']['apparent_temperature'] as double?)?.round(),
       weatherCode: json['current']['weather_code'],
       isDay: (json['current']['is_day'] as int?) == 1,
     );
